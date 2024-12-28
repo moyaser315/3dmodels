@@ -7,14 +7,28 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+############ constants
+# 0 lower, 1 upper
+min_v = [[], []]
+max_v = [[], []]
+mean_v = [[], []]
+median_v = [[], []]
+std_v = [[], []]
+var_v = [[], []]
+q1_v = [[], []]
+q3_v = [[], []]
+skew_v = [[], []]
+kurt_v = [[], []]
+max_vertices = 0
+min_vertices = float("inf")
+stat_combined = {}
+stat_combined["all"] = {}
+stats_summary = {}
+
 
 def load_obj(path):
     mesh = trimesh.load(path)
     return mesh
-
-
-path = r"D:\projects\cuda11.8\3dmodels\dataset\obj"
-folders = os.listdir(path)
 
 
 # visualize
@@ -93,36 +107,22 @@ def plot_correlation_matrix(mean_v, j):
     save_figure(fig, f'{"upper" if j==1 else "lower"}_correlation_matrix.png')
 
 
-# 0 lower, 1 upper
-min_v = [[], []]
-max_v = [[], []]
-mean_v = [[], []]
-median_v = [[], []]
-std_v = [[], []]
-var_v = [[], []]
-q1_v = [[], []]
-q3_v = [[], []]
-skew_v = [[], []]
-kurt_v = [[], []]
-max_vertices = 0
-min_vertices = float("inf")
+def init_var():
+    for jaw in range(2):
+        for i in range(3):
+            min_v[jaw].append(float("inf"))
+            max_v[jaw].append(float("-inf"))
+            mean_v[jaw].append([])
+            median_v[jaw].append([])
+            std_v[jaw].append([])
+            var_v[jaw].append([])
+            q1_v[jaw].append([])
+            q3_v[jaw].append([])
+            skew_v[jaw].append([])
+            kurt_v[jaw].append([])
 
 
-for jaw in range(2):
-    for i in range(3):
-        min_v[jaw].append(float("inf"))
-        max_v[jaw].append(float("-inf"))
-        mean_v[jaw].append([])
-        median_v[jaw].append([])
-        std_v[jaw].append([])
-        var_v[jaw].append([])
-        q1_v[jaw].append([])
-        q3_v[jaw].append([])
-        skew_v[jaw].append([])
-        kurt_v[jaw].append([])
-
-
-def data_analysis(v, j):
+def get_values(v, j):
     for axis in range(3):
         axis_data = v[:, axis]
 
@@ -143,114 +143,117 @@ def data_analysis(v, j):
         kurt_v[j][axis].append(stats.kurtosis(axis_data))
 
 
-j = 0
-for i in tqdm(range(len(folders))):
-    npath = path + "\\" + folders[i]
-    files = os.listdir(npath)
-    j %= 2
-    for f in files:
-        mesh = load_obj(npath + "\\" + f)
-        v = np.array(mesh.vertices)
-        max_vertices = max(max_vertices, v.shape[0])
-        min_vertices = min(min_vertices, v.shape[0])
-        data_analysis(v, j)
-        j += 1
+def get_stats(folders, path):
+    j = 0
+    for i in tqdm(range(len(folders))):
+        npath = path + "\\" + folders[i]
+        files = os.listdir(npath)
+        j %= 2
+        for f in files:
+            mesh = load_obj(npath + "\\" + f)
+            v = np.array(mesh.vertices)
+            max_vertices = max(max_vertices, v.shape[0])
+            min_vertices = min(min_vertices, v.shape[0])
+            get_values(v, j)
+            j += 1
 
-stats_summary = {
-    "vertex_count": {
-        "min": min_vertices,
-        "max": max_vertices,
-        "range": max_vertices - min_vertices,
+
+def data_analysis():
+    stats_summary = {
+        "vertex_count": {
+            "min": min_vertices,
+            "max": max_vertices,
+            "range": max_vertices - min_vertices,
+        }
     }
-}
-for i in range(2):
-    jaw = ["lower", "upper"][i]
-    stats_summary[jaw] = {}
+    for i in range(2):
+        jaw = ["lower", "upper"][i]
+        stats_summary[jaw] = {}
+        for axis in range(3):
+            axis_name = ["x", "y", "z"][axis]
+            stats_summary[jaw][f"{axis_name}_axis"] = {
+                "min": min_v[i][axis],
+                "max": max_v[i][axis],
+                "range": max_v[i][axis] - min_v[i][axis],
+                "mean": np.mean(mean_v[i][axis]),
+                "median": np.mean(median_v[i][axis]),
+                "std": np.mean(std_v[i][axis]),
+                "var": np.mean(var_v[i][axis]),
+                "q1": np.mean(q1_v[i][axis]),
+                "q3": np.mean(q3_v[i][axis]),
+                "iqr": np.mean(q3_v[i][axis]) - np.mean(q1_v[i][axis]),
+                "skewness": np.mean(skew_v[i][axis]),
+                "kurtosis": np.mean(kurt_v[i][axis]),
+            }
+
+
+def combine_stats():
     for axis in range(3):
         axis_name = ["x", "y", "z"][axis]
-        stats_summary[jaw][f"{axis_name}_axis"] = {
-            "min": min_v[i][axis],
-            "max": max_v[i][axis],
-            "range": max_v[i][axis] - min_v[i][axis],
-            "mean": np.mean(mean_v[i][axis]),
-            "median": np.mean(median_v[i][axis]),
-            "std": np.mean(std_v[i][axis]),
-            "var": np.mean(var_v[i][axis]),
-            "q1": np.mean(q1_v[i][axis]),
-            "q3": np.mean(q3_v[i][axis]),
-            "iqr": np.mean(q3_v[i][axis]) - np.mean(q1_v[i][axis]),
-            "skewness": np.mean(skew_v[i][axis]),
-            "kurtosis": np.mean(kurt_v[i][axis]),
+        mi = min(
+            stats_summary["upper"][f"{axis_name}_axis"]["min"],
+            stats_summary["lower"][f"{axis_name}_axis"]["min"],
+        )
+        ma = max(
+            stats_summary["upper"][f"{axis_name}_axis"]["max"],
+            stats_summary["lower"][f"{axis_name}_axis"]["max"],
+        )
+        q1 = np.mean(
+            [
+                stats_summary["upper"][f"{axis_name}_axis"]["q1"],
+                stats_summary["lower"][f"{axis_name}_axis"]["q1"],
+            ]
+        )
+        q3 = np.mean(
+            [
+                stats_summary["upper"][f"{axis_name}_axis"]["q3"],
+                stats_summary["lower"][f"{axis_name}_axis"]["q3"],
+            ]
+        )
+        stat_combined["all"][f"{axis_name}_axis"] = {
+            "min": mi,
+            "max": ma,
+            "range": ma - mi,
+            "mean": np.mean(
+                [
+                    stats_summary["upper"][f"{axis_name}_axis"]["mean"],
+                    stats_summary["lower"][f"{axis_name}_axis"]["mean"],
+                ]
+            ),
+            "median": np.mean(
+                [
+                    stats_summary["upper"][f"{axis_name}_axis"]["median"],
+                    stats_summary["lower"][f"{axis_name}_axis"]["median"],
+                ]
+            ),
+            "std": np.mean(
+                [
+                    stats_summary["upper"][f"{axis_name}_axis"]["std"],
+                    stats_summary["lower"][f"{axis_name}_axis"]["std"],
+                ]
+            ),
+            "var": np.mean(
+                [
+                    stats_summary["upper"][f"{axis_name}_axis"]["var"],
+                    stats_summary["lower"][f"{axis_name}_axis"]["var"],
+                ]
+            ),
+            "q1": q1,
+            "q3": q3,
+            "iqr": q3 - q1,
+            "skewness": np.mean(
+                [
+                    stats_summary["upper"][f"{axis_name}_axis"]["skewness"],
+                    stats_summary["lower"][f"{axis_name}_axis"]["skewness"],
+                ]
+            ),
+            "kurtosis": np.mean(
+                [
+                    stats_summary["upper"][f"{axis_name}_axis"]["kurtosis"],
+                    stats_summary["lower"][f"{axis_name}_axis"]["kurtosis"],
+                ]
+            ),
         }
-
-stat_combined = {}
-stat_combined["all"] = {}
-for axis in range(3):
-    axis_name = ["x", "y", "z"][axis]
-    mi = min(
-        stats_summary["upper"][f"{axis_name}_axis"]["min"],
-        stats_summary["lower"][f"{axis_name}_axis"]["min"],
-    )
-    ma = max(
-        stats_summary["upper"][f"{axis_name}_axis"]["max"],
-        stats_summary["lower"][f"{axis_name}_axis"]["max"],
-    )
-    q1 = np.mean(
-        [
-            stats_summary["upper"][f"{axis_name}_axis"]["q1"],
-            stats_summary["lower"][f"{axis_name}_axis"]["q1"],
-        ]
-    )
-    q3 = np.mean(
-        [
-            stats_summary["upper"][f"{axis_name}_axis"]["q3"],
-            stats_summary["lower"][f"{axis_name}_axis"]["q3"],
-        ]
-    )
-    stat_combined["all"][f"{axis_name}_axis"] = {
-        "min": mi,
-        "max": ma,
-        "range": ma - mi,
-        "mean": np.mean(
-            [
-                stats_summary["upper"][f"{axis_name}_axis"]["mean"],
-                stats_summary["lower"][f"{axis_name}_axis"]["mean"],
-            ]
-        ),
-        "median": np.mean(
-            [
-                stats_summary["upper"][f"{axis_name}_axis"]["median"],
-                stats_summary["lower"][f"{axis_name}_axis"]["median"],
-            ]
-        ),
-        "std": np.mean(
-            [
-                stats_summary["upper"][f"{axis_name}_axis"]["std"],
-                stats_summary["lower"][f"{axis_name}_axis"]["std"],
-            ]
-        ),
-        "var": np.mean(
-            [
-                stats_summary["upper"][f"{axis_name}_axis"]["var"],
-                stats_summary["lower"][f"{axis_name}_axis"]["var"],
-            ]
-        ),
-        "q1": q1,
-        "q3": q3,
-        "iqr": q3 - q1,
-        "skewness": np.mean(
-            [
-                stats_summary["upper"][f"{axis_name}_axis"]["skewness"],
-                stats_summary["lower"][f"{axis_name}_axis"]["skewness"],
-            ]
-        ),
-        "kurtosis": np.mean(
-            [
-                stats_summary["upper"][f"{axis_name}_axis"]["kurtosis"],
-                stats_summary["lower"][f"{axis_name}_axis"]["kurtosis"],
-            ]
-        ),
-    }
 
 
 def create_jaw_df(stats_summary, jaw_name):
@@ -300,26 +303,33 @@ def create_jaw_df(stats_summary, jaw_name):
     return df
 
 
-lower_df = create_jaw_df(stats_summary, "lower")
-upper_df = create_jaw_df(stats_summary, "upper")
-all_df = create_jaw_df(stat_combined, "all")
+if __name__ == "__main__":
+    path = r"D:\projects\cuda11.8\3dmodels\dataset\obj"
+    folders = os.listdir(path)
+    init_var()
+    get_stats(folders, path)
+    data_analysis()
+    combine_stats()
+    lower_df = create_jaw_df(stats_summary, "lower")
+    upper_df = create_jaw_df(stats_summary, "upper")
+    all_df = create_jaw_df(stat_combined, "all")
 
-lower_df.to_csv("lower_jaw_statistics.csv", index=False)
-upper_df.to_csv("upper_jaw_statistics.csv", index=False)
-all_df.to_csv("statistics.csv", index=False)
+    lower_df.to_csv("lower_jaw_statistics.csv", index=False)
+    upper_df.to_csv("upper_jaw_statistics.csv", index=False)
+    all_df.to_csv("statistics.csv", index=False)
 
-vertex_df = pd.DataFrame(
-    {
-        "metric": ["min_vertices", "max_vertices", "range"],
-        "value": [
-            stats_summary["vertex_count"]["min"],
-            stats_summary["vertex_count"]["max"],
-            stats_summary["vertex_count"]["range"],
-        ],
-    }
-)
-vertex_df.to_csv("vertex_count_statistics.csv", index=False)
-plot_vertex_statistics(stats_summary, "lower", 0, mean_v, std_v, skew_v)
-plot_vertex_statistics(stats_summary, "upper", 1, mean_v, std_v, skew_v)
-plot_correlation_matrix(mean_v, 0)
-plot_correlation_matrix(mean_v, 1)
+    vertex_df = pd.DataFrame(
+        {
+            "metric": ["min_vertices", "max_vertices", "range"],
+            "value": [
+                stats_summary["vertex_count"]["min"],
+                stats_summary["vertex_count"]["max"],
+                stats_summary["vertex_count"]["range"],
+            ],
+        }
+    )
+    vertex_df.to_csv("vertex_count_statistics.csv", index=False)
+    plot_vertex_statistics(stats_summary, "lower", 0, mean_v, std_v, skew_v)
+    plot_vertex_statistics(stats_summary, "upper", 1, mean_v, std_v, skew_v)
+    plot_correlation_matrix(mean_v, 0)
+    plot_correlation_matrix(mean_v, 1)
