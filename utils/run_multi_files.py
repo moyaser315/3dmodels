@@ -3,7 +3,7 @@ import sys
 import time
 from datetime import datetime
 
-def run_script(script_path, num_runs=8):
+def run_script(script_path,data_path, num_runs=10):
     for i in range(num_runs):
         print("\n" + "="*50)
         print(f"Starting run {i+1} of {num_runs}")
@@ -11,7 +11,7 @@ def run_script(script_path, num_runs=8):
         print("="*50 + "\n")
         
         try:
-            subprocess.run([sys.executable, script_path], check=True)
+            subprocess.run([sys.executable, script_path, data_path], check=True)
         except subprocess.CalledProcessError as e:
             print(f"Error in run {i+1}: {e}")
             
@@ -23,5 +23,6 @@ def run_script(script_path, num_runs=8):
             time.sleep(2)
 
 if __name__ == "__main__":  
-    script_path = r"D:\projects\cuda11.8\3dmodels\utils\mesh_analysis.py"
-    run_script(script_path)
+    script_path = sys.argv[1]
+    data_path = sys.argv[2]
+    run_script(script_path, data_path,20)

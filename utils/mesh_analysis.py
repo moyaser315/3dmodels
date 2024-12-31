@@ -1,10 +1,10 @@
-path = r"D:\projects\cuda11.8\3dmodels\dataset\obj"
 import trimesh
 import os
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
 import json
+import sys
 
 def check_manifold(mesh):
     edge_faces = mesh.face_adjacency_edges
@@ -137,5 +137,6 @@ def analyze_mesh_dataset(base_path, batch_size=20):
     
     pd.DataFrame([current_summary]).to_csv('mesh_analysis_summary_part1.csv', index=False)
     return current_summary
-
-summary = analyze_mesh_dataset(path, batch_size=60)
+if __name__ == "__main__":
+    path = sys.argv[1]
+    summary = analyze_mesh_dataset(path, batch_size=60)
