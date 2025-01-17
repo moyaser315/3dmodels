@@ -1,5 +1,6 @@
-check_points/
+chkpoints/
 dataset/
+external_libs/
 
 
 # Byte-compiled / optimized / DLL files
