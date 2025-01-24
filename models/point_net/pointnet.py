@@ -4,10 +4,11 @@ import torch.nn.functional as F
 from .pointnet_encoder import PointNetEncoder
 
 class PointNet(nn.Module):
-    def __init__(self):
+    def __init__(self, config):
         super(PointNet, self).__init__()
+        self.config = config
+        
 
-        # Module components
         self.k = 17
         scale = 2
         self.feat = PointNetEncoder(global_feat=False, feature_transform=True, channel=6, scale=scale)
@@ -19,17 +20,16 @@ class PointNet(nn.Module):
         self.bn2 = nn.BatchNorm1d(256*scale)
         self.bn3 = nn.BatchNorm1d(128*scale)
         
-        # Initialize model state
+
         self.train()
         self.cuda()
         
-        # Setup optimizer 
+
         self.optimizer = torch.optim.Adam(
-            self.parameters(),
-            lr=1e-3,
-            weight_decay=1.0e-4
+            self.parameters()
         )
 
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=40,eta_min=1e-5)
 
     def forward(self, x_in):
         x = x_in[0]
@@ -53,8 +53,8 @@ class PointNet(nn.Module):
         elif phase in ["val", "test"]:
             self.eval()
 
-    def load(self,path):
-        self.load_state_dict(torch.load(path))
+    def load(self):
+        self.load_state_dict(torch.load(self.config["checkpoint_path"]))
         print("Checkpoint loaded successfully.")
 
     def save(self, phase):
@@ -62,6 +62,35 @@ class PointNet(nn.Module):
         torch.save(self.state_dict(), save_path)
         print(f"Checkpoint saved as {save_path}.")
 
+    def get_loss(self, gt_seg_label_1, sem_1):
+        tooth_class_loss_1 = self.tooth_class_loss(sem_1, gt_seg_label_1, 17)
+        return {
+            "tooth_class_loss_1": (tooth_class_loss_1, 1),
+        }
+
+    def step(self, batch_idx, batch_item, phase):
+        self._set_model(phase)
+
+        points = batch_item["feat"].cuda()
+        seg_label = batch_item["gt_seg_label"].cuda()
+        
+        inputs = [points, seg_label]
+        
+        if phase == "train":
+            output = self(inputs)
+        else:
+            with torch.no_grad():
+                output = self(inputs)
+        
+        # Directly compute loss
+        loss = F.cross_entropy(output["cls_pred"].permute(0,2,1), seg_label.squeeze(1))
+        
+        if phase == "train":
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+
+        return loss
 
 
 
