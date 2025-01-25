@@ -15,8 +15,8 @@ sys.path.append(os.getcwd())
 class Infer:
     def __init__(self, model):
         self.model = model
-        self.scaler = 1.8
-        self.shifter = 0.8
+        self.scaler = 1.9
+        self.shifter = 0.9
 
     def __call__(self, stl_path):
         _, mesh = u.read_files(stl_path, ret_mesh=True, tri=True)
