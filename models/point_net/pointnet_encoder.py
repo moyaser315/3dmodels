@@ -1,4 +1,4 @@
-#refer to  https://github.com/yanx27/Pointnet_Pointnet2_pytorch/blob/master/models/pointnet_utils.py for original
+# refer to  https://github.com/yanx27/Pointnet_Pointnet2_pytorch/blob/master/models/pointnet_utils.py for original
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -37,8 +37,15 @@ class STN3d(nn.Module):
         x = F.relu(self.bn5(self.fc2(x)))
         x = self.fc3(x)
 
-        iden = Variable(torch.from_numpy(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32))).view(1, 9).repeat(
-            batchsize, 1)
+        iden = (
+            Variable(
+                torch.from_numpy(
+                    np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(np.float32)
+                )
+            )
+            .view(1, 9)
+            .repeat(batchsize, 1)
+        )
         if x.is_cuda:
             iden = iden.cuda()
         x = x + iden
@@ -77,8 +84,11 @@ class STNkd(nn.Module):
         x = F.relu(self.bn5(self.fc2(x)))
         x = self.fc3(x)
 
-        iden = Variable(torch.from_numpy(np.eye(self.k).flatten().astype(np.float32))).view(1, self.k * self.k).repeat(
-            batchsize, 1)
+        iden = (
+            Variable(torch.from_numpy(np.eye(self.k).flatten().astype(np.float32)))
+            .view(1, self.k * self.k)
+            .repeat(batchsize, 1)
+        )
         if x.is_cuda:
             iden = iden.cuda()
         x = x + iden
@@ -91,16 +101,16 @@ class PointNetEncoder(nn.Module):
         super(PointNetEncoder, self).__init__()
         self.stn = STN3d(channel)
         self.scale = scale
-        self.conv1 = torch.nn.Conv1d(channel, 64*scale, 1)
-        self.conv2 = torch.nn.Conv1d(64*scale, 128*scale, 1)
-        self.conv3 = torch.nn.Conv1d(128*scale, 1024*scale, 1)
-        self.bn1 = nn.BatchNorm1d(64*scale)
-        self.bn2 = nn.BatchNorm1d(128*scale)
-        self.bn3 = nn.BatchNorm1d(1024*scale)
+        self.conv1 = torch.nn.Conv1d(channel, 64 * scale, 1)
+        self.conv2 = torch.nn.Conv1d(64 * scale, 128 * scale, 1)
+        self.conv3 = torch.nn.Conv1d(128 * scale, 1024 * scale, 1)
+        self.bn1 = nn.BatchNorm1d(64 * scale)
+        self.bn2 = nn.BatchNorm1d(128 * scale)
+        self.bn3 = nn.BatchNorm1d(1024 * scale)
         self.global_feat = global_feat
         self.feature_transform = feature_transform
         if self.feature_transform:
-            self.fstn = STNkd(k=64*scale)
+            self.fstn = STNkd(k=64 * scale)
 
     def forward(self, x):
         B, D, N = x.size()
@@ -127,10 +137,9 @@ class PointNetEncoder(nn.Module):
         x = F.relu(self.bn2(self.conv2(x)))
         x = self.bn3(self.conv3(x))
         x = torch.max(x, 2, keepdim=True)[0]
-        x = x.view(-1, 1024*self.scale)
+        x = x.view(-1, 1024 * self.scale)
         if self.global_feat:
             return x, trans, trans_feat
         else:
-            x = x.view(-1, 1024*self.scale, 1).repeat(1, 1, N)
+            x = x.view(-1, 1024 * self.scale, 1).repeat(1, 1, N)
             return torch.cat([x, pointfeat], 1), trans, trans_feat
-
