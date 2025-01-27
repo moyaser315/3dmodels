@@ -62,7 +62,6 @@ class PointNet(nn.Module):
         torch.save(self.state_dict(), save_path)
         print(f"Checkpoint saved as {save_path}.")
 
-
     def step(self, batch_idx, batch_item, phase):
         self._set_model(phase)
 

@@ -56,11 +56,9 @@ def main():
     args = parser.parse_args()
 
     config = {
-        
-            "processed_data": f"{args.processed_data}",
-            "train_txt": f"{args.train_txt}",
-            "train_batch_size": 1,
-        
+        "processed_data": f"{args.processed_data}",
+        "train_txt": f"{args.train_txt}",
+        "train_batch_size": 1,
         "checkpoint_path": "./chkpoints/pointnet.pt",
     }
 

@@ -5,6 +5,7 @@ import numpy as np
 from glob import glob
 from torch.utils.data import DataLoader
 
+
 class DentalLoader(Dataset):
     def __init__(self, data_dir=None, train_txt=None):
         self.data_dir = data_dir
@@ -46,6 +47,7 @@ class DentalLoader(Dataset):
 
         return output
 
+
 def collate_fn(batch):
     output = {}
 
@@ -60,6 +62,7 @@ def collate_fn(batch):
             output[output_key] = torch.stack(output[output_key])
     return output
 
+
 def load_data(config):
     point_loader = DataLoader(
         DentalLoader(config["processed_data"], split_with_txt_path=config["train_txt"]),
@@ -69,6 +72,7 @@ def load_data(config):
     )
 
     return point_loader
+
 
 if __name__ == "__main__":
     dt = DentalLoader("ex/")
