@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from glob import glob
-import general as u
+from ..utils import general as u
 import argparse
 
 

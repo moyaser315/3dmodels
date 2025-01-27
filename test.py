@@ -90,17 +90,16 @@ class Segment:
         print("jaw processed is:", jaw)
         labels = labels.astype(int).tolist()
 
-        return labels, labels, jaw
+        return labels, jaw
 
 
     def process(self, input_path, output_path):
-        labels, instances, jaw = self.predict([input_path])
+        labels, jaw = self.predict([input_path])
         
         pred_output = {
             'id_patient': "",
             'jaw': jaw,
-            'labels': labels,
-            'instances': instances
+            'labels': labels
         }
 
         with open(output_path, 'w') as fp:

@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 from glob import glob
-
+from torch.utils.data import DataLoader
 
 class DentalLoader(Dataset):
     def __init__(self, data_dir=None, train_txt=None):
@@ -46,6 +46,29 @@ class DentalLoader(Dataset):
 
         return output
 
+def collate_fn(batch):
+    output = {}
+
+    for batch_item in batch:
+        for key in batch_item.keys():
+            if key not in output:
+                output[key] = []
+            output[key].append(batch_item[key])
+
+    for output_key in output.keys():
+        if output_key in ["feat", "label"]:
+            output[output_key] = torch.stack(output[output_key])
+    return output
+
+def load_data(config):
+    point_loader = DataLoader(
+        DentalLoader(config["processed_data"], split_with_txt_path=config["train_txt"]),
+        shuffle=True,
+        batch_size=config["train_batch_size"],
+        collate_fn=collate_fn,
+    )
+
+    return point_loader
 
 if __name__ == "__main__":
     dt = DentalLoader("ex/")

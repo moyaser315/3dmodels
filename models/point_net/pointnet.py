@@ -62,17 +62,12 @@ class PointNet(nn.Module):
         torch.save(self.state_dict(), save_path)
         print(f"Checkpoint saved as {save_path}.")
 
-    def get_loss(self, gt_seg_label_1, sem_1):
-        tooth_class_loss_1 = self.tooth_class_loss(sem_1, gt_seg_label_1, 17)
-        return {
-            "tooth_class_loss_1": (tooth_class_loss_1, 1),
-        }
 
     def step(self, batch_idx, batch_item, phase):
         self._set_model(phase)
 
         points = batch_item["feat"].cuda()
-        seg_label = batch_item["gt_seg_label"].cuda()
+        seg_label = batch_item["label"].cuda()
 
         inputs = [points, seg_label]
 

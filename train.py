@@ -1,11 +1,9 @@
 import argparse
 import numpy as np
-import torch
-from torch.utils.data import DataLoader
-from .dataset import DentalLoader
-from models.point_net.pointnet import PointNet
 import sys
 import os
+from .dataset.dataset import load_data
+from models.point_net.pointnet import PointNet
 
 sys.path.append(os.getcwd())
 
@@ -37,34 +35,8 @@ class Trainer:
             print(f"Epoch {epoch + 1}: Training Loss = {train_loss:.4f}")
 
 
-def collate_fn(batch):
-    output = {}
-
-    for batch_item in batch:
-        for key in batch_item.keys():
-            if key not in output:
-                output[key] = []
-            output[key].append(batch_item[key])
-
-    for output_key in output.keys():
-        if output_key in ["feat", "label"]:
-            output[output_key] = torch.stack(output[output_key])
-    return output
-
-
-def get_files(config):
-    point_loader = DataLoader(
-        DentalLoader(config["processed_data"], split_with_txt_path=config["train_txt"]),
-        shuffle=True,
-        batch_size=config["train_batch_size"],
-        collate_fn=collate_fn,
-    )
-
-    return point_loader
-
-
 def runner(config, model):
-    train_files = get_files(config["generator"])
+    train_files = load_data(config)
     print("train_files", len(train_files))
     trainer = Trainer(config=config, model=model, train_files=train_files)
     trainer.run()
@@ -84,11 +56,11 @@ def main():
     args = parser.parse_args()
 
     config = {
-        "generator": {
+        
             "processed_data": f"{args.processed_data}",
             "train_txt": f"{args.train_txt}",
             "train_batch_size": 1,
-        },
+        
         "checkpoint_path": "./chkpoints/pointnet.pt",
     }
 
