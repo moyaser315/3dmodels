@@ -23,8 +23,10 @@ class Trainer:
             total_losses.append(loss.item())
 
         self.model.scheduler.step()
+
+        if self.train_count % 5 == 0:
+            self.model.save("train")
         self.train_count += 1
-        self.model.save("train")
 
         return np.mean(total_losses)
 
@@ -58,6 +60,18 @@ def main():
     config = {
         "processed_data": f"{args.processed_data}",
         "train_txt": f"{args.train_txt}",
+        "train_batch_size": 1,
+        "checkpoint_path": "./chkpoints/pointnet.pt",
+    }
+
+    model = PointNet(config)
+    runner(config, model)
+
+
+def test():
+    config = {
+        "processed_data": "/kaggle/working/",
+        "train_txt": f"/kaggle/working/",
         "train_batch_size": 1,
         "checkpoint_path": "./chkpoints/pointnet.pt",
     }

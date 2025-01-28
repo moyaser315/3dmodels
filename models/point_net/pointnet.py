@@ -36,7 +36,7 @@ class PointNet(nn.Module):
         batchsize = x.size()[0]
         n_pts = x.size()[2]
 
-        x, trans, trans_feat = self.feat(x)
+        x, _, trans_feat = self.feat(x)
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
@@ -67,7 +67,6 @@ class PointNet(nn.Module):
 
         points = batch_item["feat"].cuda()
         seg_label = batch_item["label"].cuda()
-
         inputs = [points, seg_label]
 
         if phase == "train":
@@ -76,10 +75,8 @@ class PointNet(nn.Module):
             with torch.no_grad():
                 output = self(inputs)
 
-        # Directly compute loss
-        loss = F.cross_entropy(
-            output["cls_pred"].permute(0, 2, 1), seg_label.squeeze(1)
-        )
+        seg_label = seg_label.view(seg_label.size(0), -1).long() + 1
+        loss = F.cross_entropy(output["cls_pred"], seg_label)
 
         if phase == "train":
             self.optimizer.zero_grad()
@@ -90,6 +87,7 @@ class PointNet(nn.Module):
 
 
 if __name__ == "__main__":
-    model = PointNet()
-    xyz = torch.rand(12, 3, 2048)
-    (model(xyz))
+    config = {"checkpoint_path": "./chkpoints/pointnet.pt"}
+    model = PointNet(config)
+    rrrr = torch.rand(12, 3, 2048)
+    (model(rrrr))

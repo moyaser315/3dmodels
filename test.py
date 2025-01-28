@@ -22,13 +22,13 @@ class Infer:
         _, mesh = u.read_files(stl_path, ret_mesh=True, tri=True)
         vertices = np.array(mesh.vertices)
         
-        # Normalize vertices
+        # inavriance
         vertices[:,:3] -= np.mean(vertices[:,:3], axis=0)
         vertices[:, :3] = ((vertices[:, :3]-np.min(vertices[:,1]))/(np.max(vertices[:,1])- np.min(vertices[:,1])))*self.scaler-self.shifter
         mesh.vertices = o3d.utility.Vector3dVector(vertices)
         org_feats = np.array(np.concatenate([np.array(mesh.vertices), np.array(mesh.vertex_normals)], axis=1))
 
-        # Subdivide mesh if needed
+        # Subdivide mesh
         if np.asarray(mesh.vertices).shape[0] < 24000:
             mesh = mesh.subdivide_midpoint(number_of_iterations=1)
         vertices = np.array(np.concatenate([np.array(mesh.vertices), np.array(mesh.vertex_normals)], axis=1))
@@ -44,7 +44,7 @@ class Infer:
         cls_pred[cls_pred>=9] += 2
         cls_pred[cls_pred>0] += 10
         
-        # Map predictions to original points
+        # remaining points
         tree = KDTree(sampled_feats[:,:3], leaf_size=2)
         near_points = tree.query(org_feats[:,:3], k=1, return_distance=False)
         result_labels = cls_pred.reshape(-1)[near_points.reshape(-1)].reshape(-1)
