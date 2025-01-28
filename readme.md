@@ -7,3 +7,8 @@
 - [ ] Shape As Points
 
 PointNet and PointNet++ structre was inspired by [yanx27 repo](https://github.com/yanx27/Pointnet_Pointnet2_pytorch/tree/master)
+
+
+#TODO:
+- [ ] Make backend
+- [ ] Make a simple viewer
