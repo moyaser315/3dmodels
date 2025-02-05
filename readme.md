@@ -1,4 +1,17 @@
-# This is a repo for implementing 3d models in a simplified way 
+# Introduction
+
+This is a project to train on 3D Vision, The datasets used will mainly be Teeth3Ds and ShapeNet
+
+## usage
+
+## Implemented Models Results
+
+[Trained models can be found here](https://drive.google.com/drive/folders/1HkosNZrBiGC8gFM38o_f9LQ0fARovoV5?usp=drive_link)
+
+| Model  | Accuracy | IoU |
+| ------ | -------- | --- |
+| PointNet| ![Accuracy](.\images\accuracy_plot.png) | ![IoU](.\images\IoU_plot.png) |
+
 ## papers that is planned to be implemented :
 - [x] PointNet
 - [ ] PointNet++
