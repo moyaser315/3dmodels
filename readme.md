@@ -10,7 +10,7 @@ This is a project to train on 3D Vision, The datasets used will mainly be Teeth3
 
 | Model  | Accuracy | IoU |
 | ------ | -------- | --- |
-| PointNet| ![Accuracy](.\images\accuracy_plot.png) | ![IoU](.\images\IoU_plot.png) |
+| PointNet| ![Accuracy](./images/accuracy_plot.png) | ![IoU](./images/IoU_plot.png) |
 
 ## papers that is planned to be implemented :
 - [x] PointNet
