@@ -1,41 +1,130 @@
 import argparse
+import json
 import numpy as np
 import sys
 import os
+from tqdm import tqdm
 from .dataset.dataset import load_data
 from models.point_net.pointnet import PointNet
-from .test import Infer
+
 
 sys.path.append(os.getcwd())
 
 
 class Trainer:
-    def __init__(self, config, model, train_files):
+    def __init__(self, config, model, train_files, test_files=None):
         self.train_files = train_files
+        self.test_files = test_files
         self.config = config
         self.model = model
         self.train_count = 0
+        
+        
+        if "checkpoint_path" in config and config["checkpoint_path"]:
+            self.model.load()
+        
+
+        self.history = {
+            'train_losses': [],
+            'test_losses': [],
+            'epochs': []
+        }
 
     def train(self, epoch, data_loader):
         total_losses = []
 
-        for batch_idx, batch_item in enumerate(data_loader):
+        # Create progress bar for training batches
+        train_pbar = tqdm(data_loader, desc=f"Epoch {epoch+1} - Training", 
+                         leave=False, ncols=100)
+        
+        for batch_idx, batch_item in enumerate(train_pbar):
+
             loss = self.model.step(batch_idx, batch_item, "train")
             total_losses.append(loss.item())
 
+            train_pbar.set_postfix({
+                'Loss': f'{loss.item():.4f}',
+                'Avg Loss': f'{np.mean(total_losses):.4f}'
+            })
+
         self.model.scheduler.step()
-
-        if self.train_count % 5 == 0:
-            self.model.save("train")
         self.train_count += 1
-
+        
         return np.mean(total_losses)
+
+    def test(self, epoch, data_loader):
+
+        if data_loader is None:
+            return None
+            
+        total_losses = []
+        
+        # Create progress bar for testing batches
+        test_pbar = tqdm(data_loader, desc=f"Epoch {epoch+1} - Testing", 
+                        leave=False, ncols=100)
+        
+        for batch_idx, batch_item in enumerate(test_pbar):
+            loss = self.model.step(batch_idx, batch_item, "test")
+            total_losses.append(loss.item())
+            
+            test_pbar.set_postfix({
+                'Loss': f'{loss.item():.4f}',
+                'Avg Loss': f'{np.mean(total_losses):.4f}'
+            })
+        
+        return np.mean(total_losses)
+
+    def save_metrics(self, epoch, train_loss, test_loss=None):
+        """Save losses to JSON file"""
+        self.history['epochs'].append(epoch + 1)
+        self.history['train_losses'].append(train_loss)
+        
+        if test_loss is not None:
+            self.history['test_losses'].append(test_loss)
+        else:
+            self.history['test_losses'].append(None)
+        
+        metrics_file = "/kaggle/working/training_metrics.json"
+        with open(metrics_file, 'w') as f:
+            json.dump(self.history, f, indent=2)
+        
+        print(f"Metrics saved to {metrics_file}")
 
     def run(self):
         train_data_loader = self.train_files
-        for epoch in range(100000):
+        
+
+        epoch_pbar = tqdm(range(100000), desc="Training Progress", ncols=120)
+        
+        for epoch in epoch_pbar:
+
             train_loss = self.train(epoch, train_data_loader)
-            print(f"Epoch {epoch + 1}: Training Loss = {train_loss:.4f}")
+            
+            test_loss = None
+            if self.test_files is not None:
+                test_loss = self.test(epoch, self.test_files)
+                
+                # Update main progress bar with metrics
+                epoch_pbar.set_postfix({
+                    'Train Loss': f'{train_loss:.4f}',
+                    'Test Loss': f'{test_loss:.4f}'
+                })
+                
+                print(f"Epoch {epoch + 1}: Train Loss={train_loss:.4f} | Test Loss={test_loss:.4f}")
+            else:
+                # Update main progress bar with train metrics only
+                epoch_pbar.set_postfix({
+                    'Train Loss': f'{train_loss:.4f}'
+                })
+                
+                print(f"Epoch {epoch + 1}: Train Loss={train_loss:.4f}")
+            
+            # Save model and metrics every 5 epochs
+            if (epoch + 1) % 5 == 0:
+                self.model.save("train")
+                self.save_metrics(epoch, train_loss, test_loss)
+                print(f"Model and metrics saved at epoch {epoch + 1}")
+
 
 
 
@@ -80,33 +169,10 @@ def runner(config, model):
     trainer.run()
 
 def main():
-    parser = argparse.ArgumentParser(description="Training models")
-    parser.add_argument(
-        "--processed_data",
-        default="data_preprocessed",
-        type=str,
-        help="input data dir path.",
-    )
-    parser.add_argument(
-        "--train_txt", default="train.txt", type=str, help="split txt file path."
-    )
-    args = parser.parse_args()
-
     config = {
-        "processed_data": f"{args.processed_data}",
-        "train_txt": f"{args.train_txt}",
-        "train_batch_size": 1,
-        "checkpoint_path": "./chkpoints/pointnet.pt",
-    }
-
-    model = PointNet(config)
-    runner(config, model)
-
-
-def test():
-    config = {
-        "processed_data": "/kaggle/working/",
-        "train_txt": f"/kaggle/working/",
+        "processed_data": "/kaggle/input/offline-sampled-data/processed",
+        "train_txt": "/kaggle/input/txtfiles/base_name_train_fold.txt",  
+        "test_txt": "/kaggle/input/txtfiles/base_name_test_fold.txt",   
         "train_batch_size": 1,
         "checkpoint_path": "./chkpoints/pointnet.pt",
     }
