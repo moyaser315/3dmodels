@@ -4,6 +4,7 @@ import sys
 import os
 from .dataset.dataset import load_data
 from models.point_net.pointnet import PointNet
+from .test import Infer
 
 sys.path.append(os.getcwd())
 
