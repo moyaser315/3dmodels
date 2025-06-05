@@ -37,12 +37,46 @@ class Trainer:
             print(f"Epoch {epoch + 1}: Training Loss = {train_loss:.4f}")
 
 
-def runner(config, model):
-    train_files = load_data(config)
-    print("train_files", len(train_files))
-    trainer = Trainer(config=config, model=model, train_files=train_files)
-    trainer.run()
 
+def runner(config, model):
+    print("="*60)
+    print("INITIALIZING TRAINING SETUP")
+    print("="*60)
+    
+    print("Loading training data...")
+    train_files = load_data(config, config["train_txt"], "train")
+    
+    print("Loading test data...")
+    test_files = load_data(config, config["test_txt"], "test")
+    
+    print("="*60)
+    print(f"DATASET SUMMARY:")
+    print(f"Training files: {len(train_files.dataset)} (expected: ~840 from ~420 IDs)")
+    print(f"Test files: {len(test_files.dataset)} (expected: 360 from 180 IDs)")
+    print(f"Total files: {len(train_files.dataset) + len(test_files.dataset)}")
+    print(f"Batch size: {config['train_batch_size']}")
+    print(f"Training batches per epoch: {len(train_files)}")
+    print(f"Test batches per epoch: {len(test_files)}")
+    print("="*60)
+    
+    # Verify the split is correct
+    expected_test = 360  
+    expected_train = 840  
+    expected_total = 1200
+    
+    if len(test_files.dataset) != expected_test:
+        print(f"⚠️  WARNING: Expected {expected_test} test files, got {len(test_files.dataset)}")
+    if len(train_files.dataset) != expected_train:
+        print(f"⚠️  WARNING: Expected {expected_train} train files, got {len(train_files.dataset)}")
+    if len(train_files.dataset) + len(test_files.dataset) != expected_total:
+        print(f"⚠️  WARNING: Expected {expected_total} total files, got {len(train_files.dataset) + len(test_files.dataset)}")
+    else:
+        print("✅ Dataset split looks correct!")
+        print(f"✅ Test: 180 IDs → {len(test_files.dataset)} files")
+        print(f"✅ Train: {len(train_files.dataset)//2} IDs → {len(train_files.dataset)} files")
+    
+    trainer = Trainer(config=config, model=model, train_files=train_files, test_files=test_files)
+    trainer.run()
 
 def main():
     parser = argparse.ArgumentParser(description="Training models")
