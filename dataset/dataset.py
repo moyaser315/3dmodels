@@ -4,7 +4,7 @@ import os
 import numpy as np
 from glob import glob
 from torch.utils.data import DataLoader
-
+from tqdm import tqdm
 
 class DentalLoader(Dataset):
     def __init__(self, data_dir=None, train_txt=None):
