@@ -8,8 +8,6 @@ This is a project to train on 3D Vision, The datasets used will mainly be Teeth3
 
 [Trained models can be found here](https://drive.google.com/drive/folders/1HkosNZrBiGC8gFM38o_f9LQ0fARovoV5?usp=drive_link)
 
-- PointNet Model saved after 55 epochs was used, as after it the model starts overfitting
-![Loss](./images/loss.png)
 
 | Model  | Accuracy | IoU |
 | ------ | -------- | --- |
